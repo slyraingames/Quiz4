@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Godot GDScript Quiz 4: Signals</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .quiz-option {
+            transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+        }
+        .quiz-option.selected {
+            background-color: #3b82f6; /* bg-blue-600 */
+            border-color: #2563eb; /* border-blue-700 */
+            color: white;
+        }
+        .quiz-option.correct {
+            background-color: #22c55e; /* bg-green-500 */
+            border-color: #16a34a; /* border-green-600 */
+            color: white;
+        }
+        .quiz-option.incorrect {
+            background-color: #ef4444; /* bg-red-500 */
+            border-color: #dc2626; /* border-red-600 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4 sm:p-6">
+
+    <div id="quiz-container" class="w-full max-w-2xl bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8">
+        <h1 class="text-2xl sm:text-3xl font-bold text-center mb-2 text-blue-400">GDScript Quiz 4</h1>
+        <p class="text-center text-gray-400 mb-8">Using Signals</p>
+
+        <div id="quiz-content">
+            <!-- Questions will be injected here by JavaScript -->
+        </div>
+
+        <div class="mt-8 text-center">
+            <button id="submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500/50">
+                Submit Answers
+            </button>
+        </div>
+
+        <div id="results-container" class="hidden mt-8 text-center p-6 bg-gray-700/50 rounded-lg">
+            <h2 class="text-2xl font-bold mb-2">Quiz Complete!</h2>
+            <p id="score-text" class="text-4xl font-bold text-green-400 mb-4"></p>
+            <p id="feedback-text" class="text-lg text-gray-300 mb-6"></p>
+            <button id="retry-btn" class="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+                Try Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                question: "In Godot, what does it mean for a node to 'emit' a signal?",
+                options: [
+                    "It deletes the signal from memory.",
+                    "It sends out a message that a specific event has occurred.",
+                    "It listens for a message from another node.",
+                    "It creates a new function in the script."
+                ],
+                answer: "It sends out a message that a specific event has occurred."
+            },
+            {
+                question: "What is the process of making one node's function run when another node emits a signal called?",
+                options: [
+                    "Linking",
+                    "Attaching",
+                    "Broadcasting",
+                    "Connecting"
+                ],
+                answer: "Connecting"
+            },
+            {
+                question: "A Button node has a built-in signal called `pressed()`. When is this signal typically emitted?",
+                options: [
+                    "When the mouse cursor hovers over the button.",
+                    "When the game starts.",
+                    "When the user clicks the button.",
+                    "When the button is deleted from the scene."
+                ],
+                answer: "When the user clicks the button."
+            },
+            {
+                question: "What is the main advantage of connecting signals using the editor's 'Node' tab?",
+                options: [
+                    "It's the only way to connect signals.",
+                    "It offers more powerful connection options than code.",
+                    "It's a visual, user-friendly way to link nodes without writing code for the connection itself.",
+                    "It automatically writes complex game logic for you."
+                ],
+                answer: "It's a visual, user-friendly way to link nodes without writing code for the connection itself."
+            },
+            {
+                question: "Connecting a signal in code (e.g., `button.pressed.connect(my_function)`) is different from the editor method because...",
+                options: [
+                    "It is less flexible and should be avoided.",
+                    "It allows for creating and breaking connections dynamically while the game is running.",
+                    "It only works for custom signals, not built-in ones.",
+                    "It is slower and less efficient than using the editor."
+                ],
+                answer: "It allows for creating and breaking connections dynamically while the game is running."
+            }
+        ];
+
+        const quizContent = document.getElementById('quiz-content');
+        const submitBtn = document.getElementById('submit-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const scoreText = document.getElementById('score-text');
+        const feedbackText = document.getElementById('feedback-text');
+        const retryBtn = document.getElementById('retry-btn');
+
+        let selectedAnswers = new Array(quizData.length).fill(null);
+
+        function renderQuiz() {
+            quizContent.innerHTML = '';
+            selectedAnswers.fill(null);
+            quizData.forEach((item, questionIndex) => {
+                const questionEl = document.createElement('div');
+                questionEl.className = 'mb-8';
+                
+                const questionText = document.createElement('p');
+                questionText.className = 'text-lg sm:text-xl font-semibold mb-4 text-gray-200';
+                questionText.textContent = `${questionIndex + 1}. ${item.question}`;
+                questionEl.appendChild(questionText);
+
+                const optionsEl = document.createElement('div');
+                optionsEl.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3';
+                questionEl.appendChild(optionsEl);
+
+                item.options.forEach((option, optionIndex) => {
+                    const optionBtn = document.createElement('button');
+                    optionBtn.className = 'quiz-option w-full text-left p-4 border-2 border-gray-600 rounded-lg hover:bg-gray-700 hover:border-blue-500 focus:outline-none';
+                    optionBtn.textContent = option;
+                    optionBtn.onclick = () => selectOption(questionIndex, option, optionBtn);
+                    optionsEl.appendChild(optionBtn);
+                });
+
+                quizContent.appendChild(questionEl);
+            });
+            resultsContainer.classList.add('hidden');
+            submitBtn.classList.remove('hidden');
+            quizContent.classList.remove('hidden');
+        }
+
+        function selectOption(questionIndex, option, btnEl) {
+            selectedAnswers[questionIndex] = option;
+            const parent = btnEl.parentElement;
+            parent.querySelectorAll('.quiz-option').forEach(btn => btn.classList.remove('selected'));
+            btnEl.classList.add('selected');
+        }
+
+        function showResults() {
+            let score = 0;
+            const questionElements = quizContent.querySelectorAll('.mb-8');
+
+            questionElements.forEach((questionEl, index) => {
+                const correctAnswer = quizData[index].answer;
+                const userAnswer = selectedAnswers[index];
+                const optionButtons = questionEl.querySelectorAll('.quiz-option');
+
+                optionButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.classList.remove('selected');
+                    if (btn.textContent === correctAnswer) {
+                        btn.classList.add('correct');
+                    } else if (btn.textContent === userAnswer && userAnswer !== correctAnswer) {
+                        btn.classList.add('incorrect');
+                    }
+                });
+
+                if (userAnswer === correctAnswer) {
+                    score++;
+                }
+            });
+
+            const percentage = (score / quizData.length) * 100;
+            scoreText.textContent = `${score} / ${quizData.length}`;
+            
+            if (percentage === 100) {
+                feedbackText.textContent = "Great connection! You've grasped how nodes communicate.";
+                scoreText.style.color = '#4ade80';
+            } else if (percentage >= 80) {
+                feedbackText.textContent = "Strong signal! You have a good understanding of this core concept.";
+                scoreText.style.color = '#60a5fa';
+            } else if (percentage >= 60) {
+                feedbackText.textContent = "You're getting the message. Review Module 4 to make the connection stronger.";
+                scoreText.style.color = '#facc15';
+            } else {
+                feedbackText.textContent = "A little static in the connection. Reviewing Module 4 will help clear it up!";
+                scoreText.style.color = '#f87171';
+            }
+
+            submitBtn.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+        }
+
+        submitBtn.addEventListener('click', () => {
+            if (selectedAnswers.includes(null)) {
+                alert("Please answer all questions before submitting.");
+                return;
+            }
+            showResults();
+        });
+        
+        retryBtn.addEventListener('click', () => {
+            const questionElements = quizContent.querySelectorAll('.mb-8');
+            questionElements.forEach(q => {
+                 const optionButtons = q.querySelectorAll('.quiz-option');
+                 optionButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('correct', 'incorrect');
+                 });
+            });
+            renderQuiz();
+        });
+
+        renderQuiz();
+    </script>
+</body>
+</html>
